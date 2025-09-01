@@ -1,6 +1,12 @@
 use bevy::window::{Window, WindowResizeConstraints, WindowResolution};
 use bevy::{color, prelude::*};
 
+use rand::prelude::*;
+
+use crate::config::{ROOM_MAX_SIDE_LENGTH, ROOM_MIN_SIDE_LENGTH, ROOM_SPAWN_RADIUS};
+
+mod config;
+
 fn main() {
     App::new()
         .insert_resource(ClearColor(color::palettes::basic::BLACK.into()))
@@ -30,13 +36,51 @@ fn main() {
 }
 
 fn setup(mut commands: Commands) {
-    commands.spawn(Camera2d);
+    // Spawn a 2D camera with a customized orthographic projection (zoomed in ~2x)
+    commands.spawn((
+        Camera2d,
+        Projection::from(OrthographicProjection {
+            scale: 0.5,
+            ..OrthographicProjection::default_2d()
+        }),
+    ));
 
-    let size = Vec2::new(100.0, 100.0);
-    let color = color::palettes::basic::RED;
-    let sprite = Sprite::from_color(color, size);
+    let mut rng = rand::rng();
 
-    commands.spawn(sprite);
+    let center = Vec2::ZERO;
+
+    for _ in 0..config::ROOM_COUNT {
+        let size = Vec2::new(
+            rng.random_range(ROOM_MIN_SIDE_LENGTH..=ROOM_MAX_SIDE_LENGTH) as f32,
+            rng.random_range(ROOM_MIN_SIDE_LENGTH..=ROOM_MAX_SIDE_LENGTH) as f32,
+        );
+
+        let color = random_color(&mut rng);
+
+        let position = random_point_in_disk(&mut rng, center, ROOM_SPAWN_RADIUS);
+
+        print!("Room at {position:?} of size {size:?}\n");
+
+        commands.spawn((
+            Sprite::from_color(color, size),
+            Transform::from_xyz(position.x, position.y, 0.),
+        ));
+    }
+}
+
+// https://youtu.be/fv-wlo8yVhk
+fn random_color(rng: &mut impl rand::Rng) -> Color {
+    let red_green = rng.random_range(-1.0..=1.0);
+    let blue_yellow = rng.random_range(-1.0..=1.0);
+    Color::oklab(0.5, red_green, blue_yellow)
+}
+
+pub fn random_point_in_disk(rng: &mut impl rand::Rng, center: Vec2, radius: f32) -> Vec2 {
+    // Uniform angle in [0, 2π)
+    let angle = rng.random_range(0.0..std::f32::consts::TAU);
+    // Critical bit for *uniform area*: r = R * sqrt(u)
+    let r = radius * rng.random::<f32>().sqrt();
+    center + Vec2::from_angle(angle) * r
 }
 
 fn on_window_resized(mut evr: EventReader<bevy::window::WindowResized>) {
