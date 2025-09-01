@@ -6,7 +6,7 @@ fn main() {
         .insert_resource(ClearColor(color::palettes::basic::BLACK.into()))
         .add_plugins(DefaultPlugins.set(WindowPlugin {
             primary_window: Some(Window {
-                title: "Resizable Window".into(),
+                title: "Game and Bot".into(),
                 // Start size (logical pixels). You can omit this if you don’t care.
                 resolution: WindowResolution::new(1280.0, 720.0),
                 // Make sure the window can be resized by the user:
@@ -25,6 +25,7 @@ fn main() {
         .add_systems(Startup, setup)
         // (Optional) log whenever the window is resized
         .add_systems(Update, on_window_resized)
+        .add_systems(Update, exit_on_key)
         .run();
 }
 
@@ -41,5 +42,12 @@ fn setup(mut commands: Commands) {
 fn on_window_resized(mut evr: EventReader<bevy::window::WindowResized>) {
     for _e in evr.read() {
         // info!("Window {} -> {} x {}", e.window, e.width, e.height);
+    }
+}
+
+fn exit_on_key(keys: Res<ButtonInput<KeyCode>>, mut exit_events: EventWriter<AppExit>) {
+    // If either the Escape key or Q is just pressed
+    if keys.just_pressed(KeyCode::Escape) || keys.just_pressed(KeyCode::KeyQ) {
+        exit_events.write(AppExit::Success);
     }
 }
