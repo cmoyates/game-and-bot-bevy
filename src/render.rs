@@ -2,6 +2,7 @@ use crate::post::PostMaterial;
 use bevy::math::primitives::Rectangle;
 use bevy::prelude::*;
 use bevy::render::camera::ClearColorConfig;
+use bevy::render::view::RenderLayers;
 use bevy::render::{
     render_asset::RenderAssetUsages,
     render_resource::{Extent3d, TextureDimension, TextureFormat, TextureUsages},
@@ -38,6 +39,8 @@ fn make_scene_target(images: &mut Assets<Image>, width: u32, height: u32) -> Han
 struct MainSceneCam;
 #[derive(Component)]
 struct PostCam;
+/// Render layer used to isolate the post-processing quad and camera
+const POST_LAYER: u8 = 7;
 
 fn setup_cameras(
     mut commands: Commands,
@@ -54,10 +57,10 @@ fn setup_cameras(
         h = size.y;
     }
 
-    // 1) Scene camera renders the world into an Image
+    // 1) Scene camera renders the 2D world into an Image
     let scene_rt = make_scene_target(&mut images, w, h);
     commands.spawn((
-        Camera3d::default(),
+        Camera2d,
         Camera {
             target: scene_rt.clone().into(),
             ..default()
@@ -73,6 +76,8 @@ fn setup_cameras(
             clear_color: ClearColorConfig::None,
             ..default()
         },
+        // Only render entities tagged with the post layer
+        RenderLayers::layer(POST_LAYER as usize),
         PostCam,
     ));
 
@@ -101,6 +106,8 @@ fn spawn_fullscreen_quad(
         Mesh2d(rect_mesh),
         MeshMaterial2d(material),
         Transform::from_xyz(0.0, 0.0, 0.0), // overlay camera sees this
+        // Place the quad on the post layer so only the post camera renders it
+        RenderLayers::layer(POST_LAYER as usize),
         FullscreenQuad,
     ));
 }
@@ -120,3 +127,5 @@ fn resize_fullscreen_quad(
         }
     }
 }
+
+// (No runtime controls; burnt_amount is fixed at 1.0 in the material.)

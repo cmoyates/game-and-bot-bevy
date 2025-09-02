@@ -31,16 +31,23 @@ fn aces_tonemap4(x: vec4<f32>) -> vec4<f32> {
 // "Burnt" look: warm bias + slight highlight desat on RGB, keep A
 fn burnt_grade4(color: vec4<f32>, amount: f32) -> vec4<f32> {
   if (amount <= 0.0) { return color; }
+  // Allow a wider range up to ~3.0 for a stronger max effect
+  let amt = clamp(amount, 0.0, 3.0);
   let luma = dot(color.rgb, vec3<f32>(0.2126, 0.7152, 0.0722));
-  let highlight = smoothstep(0.6, 1.2, luma);
+  // Affect midtones more by lowering the threshold
+  let highlight = smoothstep(0.4, 1.1, luma);
 
-  // warm push toward yellow in highlights
-  let warm = vec3<f32>(1.0, 0.97, 0.85);
-  var out_rgb = mix(color.rgb, color.rgb * warm, amount * highlight);
+  // Stronger warm push toward yellow in highlights
+  let warm = vec3<f32>(1.0, 0.92, 0.75);
+  var out_rgb = mix(color.rgb, color.rgb * warm, amt * 0.8 * highlight);
 
-  // slight desat as it gets brighter
+  // Increased desat in highlights
   let grey = vec3<f32>(luma, luma, luma);
-  out_rgb = mix(out_rgb, grey, amount * 0.25 * highlight);
+  out_rgb = mix(out_rgb, grey, amt * 0.35 * highlight);
+
+  // Mild contrast boost scaled by amt
+  let contrast = 1.0 + 0.4 * amt; // 1.0..2.2
+  out_rgb = ((out_rgb - vec3<f32>(0.5)) * contrast) + vec3<f32>(0.5);
 
   return vec4<f32>(out_rgb, color.a);
 }
@@ -49,13 +56,8 @@ fn burnt_grade4(color: vec4<f32>, amount: f32) -> vec4<f32> {
 @fragment
 fn fragment(in: VertexOutput) -> @location(0) vec4<f32> {
   var color = textureSample(scene_tex, scene_samp, in.uv);
-
-  // 1) ACES tone map
   color = aces_tonemap4(color);
-
-  // 2) Burnt grade
   color = burnt_grade4(color, globals.burnt_amount);
 
-  // clamp RGB; preserve original alpha
-  return vec4<f32>(1.0, 0.0, 0.0, color.a);
+  return vec4<f32>(sat3(color.rgb), color.a);
 }
