@@ -3,6 +3,8 @@ use bevy::{color, prelude::*};
 
 mod config;
 mod level_generation;
+mod post;
+mod render;
 
 fn main() {
     App::new()
@@ -25,6 +27,8 @@ fn main() {
             }),
             ..default()
         }))
+        .add_plugins(post::PostProcessingPlugin)
+        .add_plugins(render::RenderToTexturePlugin) // spawns cameras + fullscreen quad
         // Use the level generation plugin for camera + room spawning + systems
         .add_plugins(level_generation::RoomGenPlugin)
         // (Optional) log whenever the window is resized

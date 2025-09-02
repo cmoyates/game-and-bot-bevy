@@ -35,13 +35,13 @@ fn setup_rooms(mut commands: Commands) {
     use components::{Acceleration, Position, Size, Velocity};
 
     // Camera
-    commands.spawn((
-        Camera2d,
-        Projection::from(OrthographicProjection {
-            scale: 0.5,
-            ..OrthographicProjection::default_2d()
-        }),
-    ));
+    // commands.spawn((
+    //     Camera2d,
+    //     Projection::from(OrthographicProjection {
+    //         scale: 0.5,
+    //         ..OrthographicProjection::default_2d()
+    //     }),
+    // ));
 
     // Randomly spawn rooms within a disk, with random sizes and colors
     let mut rng = rand::rng();
