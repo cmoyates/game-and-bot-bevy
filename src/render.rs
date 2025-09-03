@@ -13,8 +13,9 @@ pub struct RenderToTexturePlugin;
 
 impl Plugin for RenderToTexturePlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(Startup, setup_cameras)
-            .add_systems(Update, resize_fullscreen_quad);
+        app.init_resource::<PostZeroToggled>()
+            .add_systems(Startup, setup_cameras)
+            .add_systems(Update, (resize_fullscreen_quad, toggle_post_globals));
     }
 }
 
@@ -89,6 +90,12 @@ fn setup_cameras(
 #[derive(Component)]
 struct FullscreenQuad;
 
+#[derive(Component, Clone, Copy)]
+struct OriginalGlobals(crate::post::Globals);
+
+#[derive(Resource, Default)]
+struct PostZeroToggled(bool);
+
 fn spawn_fullscreen_quad(
     mut commands: Commands,
     meshes: &mut ResMut<Assets<Mesh>>,
@@ -97,15 +104,16 @@ fn spawn_fullscreen_quad(
 ) {
     // Start with a 1x1 rect; a resize system will stretch it to the window size.
     let rect_mesh = meshes.add(Mesh::from(Rectangle::new(1.0, 1.0)));
+    let defaults = crate::post::Globals {
+        burnt_amount: 0.8,
+        mask_intensity: 0.7,
+        scanline_intensity: 0.6,
+        aberration_px: 0.3,
+        pixelate_px: 1.0,
+    };
     let material = materials.add(PostMaterial {
         scene_tex: scene_rt,
-        globals: crate::post::Globals {
-            burnt_amount: 0.8,
-            mask_intensity: 0.7,
-            scanline_intensity: 0.6,
-            aberration_px: 0.3,
-            pixelate_px: 1.0,
-        },
+        globals: defaults,
     });
 
     commands.spawn((
@@ -115,6 +123,7 @@ fn spawn_fullscreen_quad(
         // Place the quad on the post layer so only the post camera renders it
         RenderLayers::layer(POST_LAYER as usize),
         FullscreenQuad,
+        OriginalGlobals(defaults),
     ));
 }
 
@@ -129,6 +138,35 @@ fn resize_fullscreen_quad(
             // Update the existing mesh asset to match the current window size
             if let Some(mesh) = meshes.get_mut(&m.0) {
                 *mesh = Mesh::from(Rectangle::new(size.x, size.y));
+            }
+        }
+    }
+}
+
+fn toggle_post_globals(
+    keys: Res<ButtonInput<KeyCode>>,
+    mut materials: ResMut<Assets<PostMaterial>>,
+    mut toggled: ResMut<PostZeroToggled>,
+    q: Query<(&MeshMaterial2d<PostMaterial>, &OriginalGlobals), With<FullscreenQuad>>,
+) {
+    if !keys.just_pressed(KeyCode::KeyP) {
+        return;
+    }
+
+    toggled.0 = !toggled.0;
+
+    for (mat_handle, original) in &q {
+        if let Some(mat) = materials.get_mut(&mat_handle.0) {
+            if toggled.0 {
+                mat.globals = crate::post::Globals {
+                    burnt_amount: 0.0,
+                    mask_intensity: 0.0,
+                    scanline_intensity: 0.0,
+                    aberration_px: 0.0,
+                    pixelate_px: 0.0,
+                };
+            } else {
+                mat.globals = original.0;
             }
         }
     }
