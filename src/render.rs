@@ -99,7 +99,13 @@ fn spawn_fullscreen_quad(
     let rect_mesh = meshes.add(Mesh::from(Rectangle::new(1.0, 1.0)));
     let material = materials.add(PostMaterial {
         scene_tex: scene_rt,
-        globals: crate::post::Globals { burnt_amount: 1.0 },
+        globals: crate::post::Globals {
+            burnt_amount: 0.8,
+            mask_intensity: 0.7,
+            scanline_intensity: 0.6,
+            aberration_px: 0.3,
+            pixelate_px: 1.0,
+        },
     });
 
     commands.spawn((

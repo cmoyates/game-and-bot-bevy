@@ -6,6 +6,10 @@ use bevy::sprite::{Material2d, Material2dPlugin};
 #[derive(Clone, Copy, Debug, ShaderType)]
 pub struct Globals {
     pub burnt_amount: f32,
+    pub mask_intensity: f32,
+    pub scanline_intensity: f32,
+    pub aberration_px: f32,
+    pub pixelate_px: f32,
 }
 
 #[derive(Asset, TypePath, AsBindGroup, Debug, Clone)]

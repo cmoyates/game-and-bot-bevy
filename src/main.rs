@@ -8,7 +8,7 @@ mod render;
 
 fn main() {
     App::new()
-        .insert_resource(ClearColor(color::palettes::basic::WHITE.into()))
+        .insert_resource(ClearColor(color::palettes::basic::BLACK.into()))
         .add_plugins(DefaultPlugins.set(WindowPlugin {
             primary_window: Some(Window {
                 title: "Game and Bot".into(),
